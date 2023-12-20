@@ -17,7 +17,7 @@ class UserDB {
   findOneAdmin = async (id: number) => {
     const connection = await this.establishConnection();
 
-    const sql = `SELECT * FROM users_and_admins WHERE id = ? AND is_admin = true;`;
+    const sql = `SELECT * FROM users_and_admins WHERE id = ? AND is_admin = true AND is_active = TRUE;`;
     const data = [id];
     let rows;
 
@@ -42,7 +42,7 @@ class UserDB {
   findOneAdminAlt = async (full_name: string, email: string) => {
     const connection = await this.establishConnection();
 
-    const sql = `SELECT * FROM users_and_admins WHERE (full_name = ? OR email = ?) AND is_admin = true;`;
+    const sql = `SELECT * FROM users_and_admins WHERE (full_name = ? OR email = ?) AND is_admin = true AND is_active = TRUE;`;
     const data = [full_name, email];
     let rows;
     try {
@@ -66,7 +66,7 @@ class UserDB {
   findOne = async (id: string): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `SELECT * FROM users_and_admins WHERE id = ?;`;
+    const sql = `SELECT * FROM users_and_admins WHERE id = ?  AND is_active = TRUE;`;
     const data = [id];
     let rows;
 
@@ -90,7 +90,7 @@ class UserDB {
   findOneAlt = async (full_name: string, email: string): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `SELECT * FROM users_and_admins WHERE is_admin = FALSE AND (full_name = ? OR email = ?);`;
+    const sql = `SELECT * FROM users_and_admins WHERE is_admin = FALSE AND (full_name = ? OR email = ?)  AND is_active = TRUE;`;
     const data = [full_name, email];
     let rows;
     try {
@@ -118,8 +118,13 @@ class UserDB {
   ): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `INSERT INTO users_and_admins values(NULL, false, ?, ?, ?);`;
-    const data: string[] = [full_name, email, hashed_password];
+    const sql = `INSERT INTO users_and_admins values(NULL, false, ?, ?, ?, ?, 1);`;
+    const data: (string | boolean)[] = [
+      full_name,
+      email,
+      hashed_password,
+      true,
+    ];
     let rows;
     try {
       [rows] = await connection.query<IUser[]>(sql, data);
@@ -136,7 +141,8 @@ class UserDB {
   findEmails = async (email: string): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = "SELECT * FROM users_and_admins WHERE email = ?;";
+    const sql =
+      "SELECT * FROM users_and_admins WHERE email = ?  AND is_active = TRUE;";
     const data = [email];
 
     try {
@@ -157,7 +163,7 @@ class UserDB {
   ): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `UPDATE users_and_admins SET email = ? WHERE id=? AND email = ?`;
+    const sql = `UPDATE users_and_admins SET email = ? WHERE id= ? AND email = ? AND is_active = TRUE`;
     const data = [new_email, user_id, old_email];
 
     try {
@@ -177,7 +183,7 @@ class UserDB {
   ): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `UPDATE users_and_admins SET hashed_password = ? WHERE id = ?;`;
+    const sql = `UPDATE users_and_admins SET hashed_password = ? WHERE id = ? AND is_active = TRUE;`;
     const data = [new_hashed_password, user_id];
 
     try {
@@ -193,11 +199,11 @@ class UserDB {
   deleteUser = async (user: DBUser): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const { user_id, is_admin, full_name, email } = user;
+    const { user_id, full_name, email } = user;
 
     const sql =
-      "DELETE FROM users_and_admins WHERE user_id = ? AND is_admin = ? AND full_name = ? AND email = ?;";
-    const data = [user_id, is_admin, full_name, email];
+      "DELETE FROM users_and_admins WHERE user_id = ? AND is_admin = FALSE AND full_name = ? AND email = ? AND is_active = TRUE;";
+    const data = [user_id, full_name, email];
 
     try {
       const [rows] = await connection.query<IUser[]>(sql, data);
@@ -215,7 +221,7 @@ class UserDB {
     const { user_id, is_admin, full_name, email } = user;
 
     const sql =
-      "UPDATE users_and_admins SET is_admin = 1 WHERE id = ? AND is_admin = ? AND full_name = ? AND email = ? LIMIT 1;";
+      "UPDATE users_and_admins SET is_admin = TRUE AND WHERE id = ? AND is_admin = ? AND full_name = ? AND email = ? LIMIT 1;";
     const data = [user_id, is_admin, full_name, email];
 
     try {
@@ -240,8 +246,8 @@ class UserDB {
     const connection = await this.establishConnection();
 
     const sql =
-      "UPDATE users_and_admins SET is_admin = 0 WHERE id = ? AND is_admin = ? AND full_name = ? AND email = ?;";
-    const data = [id, true, full_name, email];
+      "UPDATE users_and_admins SET is_admin = FALSE WHERE id = ? AND is_admin = TRUE AND full_name = ? AND email = ?;";
+    const data = [id, full_name, email];
 
     try {
       const [rows] = await connection.query<IUser[]>(sql, data);

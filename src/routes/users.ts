@@ -26,7 +26,7 @@ router.post(
     const { full_name, email, password } = req.body;
 
     const found = await userDB.findOneAlt(full_name, email);
-    if (found.rows?.length) {
+    if (found.rows && found.rows.length) {
       res.status(400).send("User already exists");
       return;
     }
@@ -210,7 +210,7 @@ router.put(
 
       const found = await userDB.findEmails(old_email);
 
-      if (found.rows === null || found.rows.length > 1) {
+      if (!found.rows || found.rows.length > 1) {
         res.status(500).send("Something went wrong. We are working on it.");
         return;
       }

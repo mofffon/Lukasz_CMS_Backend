@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
-import express, { Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
+import express, { Request, Response } from "express";
+
 import jwt from "jsonwebtoken";
 const router = express.Router();
 
@@ -124,7 +125,7 @@ router.put(
 
     const found = await userDB.findEmails(old_email);
 
-    if (found.rows === null || found.rows.length > 1) {
+    if (!found.rows || found.rows.length > 1) {
       res.status(500).send("Something went wrong. We are working on it.");
       return;
     }

@@ -26,3 +26,14 @@ export const adminSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(3).max(512).required(),
 });
+
+export const articleSchema = Joi.object({
+  title: Joi.string().required(),
+  content: Joi.array().items(Joi.string()).required(),
+  category: Joi.string().required(),
+});
+
+export const userFullNameAndCategorySchema = Joi.object({
+  full_name: Joi.string().min(3).max(512).required(),
+  category: Joi.string().min(3).max(512).required(),
+});
