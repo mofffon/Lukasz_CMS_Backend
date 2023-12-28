@@ -12,6 +12,7 @@ import Status from "../classes/Status";
 import * as validators from "./../services/validators";
 
 import IExtendedRequest from "../interfaces/IExtendedRequest";
+import adminAuth from "../middleware/adminAuth";
 
 router.post(
   "/new",
@@ -75,8 +76,6 @@ router.delete(
         res.status(500).send("Something went wrong. We are working on it.");
         return;
       }
-      // TODO
-      // IMPLEMENT CLEANING OF ARTICLES FROM DELETED USER'S CONTENT.
     }
   )
 );
@@ -210,12 +209,16 @@ router.put(
 
       const found = await userDB.findEmails(old_email);
 
-      if (!found.rows || found.rows.length > 1) {
+      if (found.status !== 0) {
+        res.status(500).send("Something went wrong. We are workingon it.");
+      }
+
+      if (found.rows === false) {
         res.status(500).send("Something went wrong. We are working on it.");
         return;
       }
 
-      if (found.rows.length === 0) {
+      if (found.rows === null || found.rows.length === 0) {
         res.status(400).send(`No user by email ${old_email} found in the app.`);
         return;
       }
@@ -233,6 +236,33 @@ router.put(
         res.status(500).send("Something went wrong. We are working on it.");
         return;
       }
+    }
+  )
+);
+
+router.get(
+  "/all",
+  adminAuth,
+  expressAsyncHandler(
+    async (req: IExtendedRequest, res: Response): Promise<void> => {
+      if (!req.admin) {
+        res.status(500).send("Something went wrong. We are workng on it.");
+        return;
+      }
+
+      const result = await userDB.findAllUsers();
+
+      if (result.status !== 0) {
+        res.status(500).send("Something went wrong. We are workng on it.");
+        return;
+      }
+
+      if (!result.rows) {
+        res.status(200).send("No data was found.");
+        return;
+      }
+
+      res.status(200).send(result.rows);
     }
   )
 );

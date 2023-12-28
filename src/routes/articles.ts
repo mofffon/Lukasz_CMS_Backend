@@ -1,4 +1,4 @@
-import express, { Response } from "express";
+import express, { Response, Request } from "express";
 import IExtendedRequest from "../interfaces/IExtendedRequest";
 import expressAsyncHandler from "express-async-handler";
 import getDayIntervals from "../utils/getDayIntervals";
@@ -8,16 +8,72 @@ import auth from "../middleware/auth";
 
 const router = express.Router();
 
+type ReqDictionary = {};
+type ReqBody = { from: Date; to: Date };
+type ReqQuery = { from: Date; to: Date };
+type ResBody = { from: Date; to: Date };
+
+type HandlerRequest = Request<ReqDictionary, ReqBody, ReqQuery, ResBody>;
+
+router.get(
+  "/byId",
+  expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { articleId } = req.query;
+
+    const parsed = parseInt(articleId as string);
+    if (!parsed || parsed < 0) {
+      res.status(400).send("Article id must be a non negative integer.");
+      return;
+    }
+
+    const result = await articleDB.findById(parsed);
+
+    if (result.status > 0) {
+      res.status(500).send("Something went wrong. We are working on it.");
+      return;
+    }
+
+    if (result.status === 0 && result.rows && result.rows.length > 0) {
+      res.status(200).send(result.rows);
+      return;
+    }
+
+    res.status(200).send("There was no data found.");
+  })
+);
+
+router.get(
+  "/newest",
+  expressAsyncHandler(
+    async (req: HandlerRequest, res: Response): Promise<void> => {
+      console.log(req);
+      const result = await articleDB.findNewestArticle();
+
+      if (result.status > 0) {
+        res.status(500).send("Something went wrong. We are working on it.");
+        return;
+      }
+
+      if (result.status === 0 && result.rows && result.rows.length > 0) {
+        res.status(200).send(result.rows);
+        return;
+      }
+
+      res.status(200).send("There was no data found.");
+    }
+  )
+);
+
 router.get(
   "/random",
   expressAsyncHandler(
-    async (req: IExtendedRequest, res: Response): Promise<void> => {
-      const { from, to } = req.body;
+    async (req: HandlerRequest, res: Response): Promise<void> => {
+      const { from, to } = req.query;
 
       let startInterval;
       let endInterval;
       try {
-        if (new Date(from).getTime() > new Date(to).getTime()) {
+        if (!from || !to || new Date(from).getTime() > new Date(to).getTime()) {
           throw new Error();
         }
         startInterval = getDayIntervals(new Date(from));
@@ -27,12 +83,26 @@ router.get(
         return;
       }
 
-      const daysDiff = Math.round(
-        (startInterval.startDate.getTime() - endInterval.endDate.getTime()) /
-          (1000 * 60 * 60 * 24)
+      const result = await articleDB.find100Random(
+        startInterval.startDate,
+        endInterval.endDate
       );
 
-      console.log(daysDiff);
+      if (result.status > 0) {
+        res.status(500).send("Something went wrong. We are working on it.");
+        return;
+      }
+
+      if (!result.rows || result.rows.length === 0) {
+        res.status(200).send("There are no articles for this timeline.");
+        return;
+      }
+
+      const selectedArticle =
+        result.rows[Math.floor(result.rows.length * Math.random())];
+
+      res.status(200).send(selectedArticle);
+      return;
     }
   )
 );
@@ -103,25 +173,23 @@ router.get(
 
 router.get(
   "/byCategory",
-  expressAsyncHandler(
-    async (req: IExtendedRequest, res: Response): Promise<void> => {
-      const { category } = req.body;
+  expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { category } = req.query;
 
-      if (!category) {
-        res.status(400).send("Category is missing or is wrong.");
-        return;
-      }
-
-      const result = await articleDB.findAllByCategory(category);
-      if (result.status === 0) {
-        res.status(200).send(result.rows);
-        return;
-      }
-
-      res.status(500).send("Something went wrong. We are working on it.");
+    if (!category) {
+      res.status(400).send("Category is missing or is wrong.");
       return;
     }
-  )
+
+    const result = await articleDB.findAllByCategory(category as string);
+    if (result.status === 0) {
+      res.status(200).send(result.rows);
+      return;
+    }
+
+    res.status(500).send("Something went wrong. We are working on it.");
+    return;
+  })
 );
 
 router.get(
@@ -153,30 +221,48 @@ router.get(
 );
 
 router.get(
-  "/",
-  expressAsyncHandler(
-    async (req: IExtendedRequest, res: Response): Promise<void> => {
-      const { article_id } = req.body;
+  "/byTitle",
+  expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { title } = req.query;
 
-      if (
-        !article_id ||
-        article_id < 0 ||
-        article_id !== parseInt(article_id)
-      ) {
-        res.status(400).send("The article_id must be at least zero integer.");
-        return;
-      }
+    if (!title || typeof title !== "string") {
+      res.status(400).send("Title must be an non empty string");
+      return;
+    }
 
-      const result = await articleDB.findById(article_id);
-      if (result.status === 0) {
-        res.status(200).send(result.rows);
-        return;
-      }
+    const result = await articleDB.findAllByTitle(title as string);
 
+    if (result.status === 0) {
+      res.status(200).send(result.rows);
+      return;
+    }
+
+    res.status(500).send("Something went wrong. We are working on it.");
+    return;
+  })
+);
+
+router.get(
+  "/byTitleAndCategory",
+  expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { title, category } = req.query;
+
+    if (!title || !category) {
+      res.status(400).send("Title and category must be non empty strings");
+    }
+
+    const result = await articleDB.findByTitleAndCategory(
+      title as string,
+      category as string
+    );
+
+    if (result.status > 0) {
       res.status(500).send("Something went wrong. We are working on it.");
       return;
     }
-  )
+
+    res.status(200).send(result.rows);
+  })
 );
 
 export default router;

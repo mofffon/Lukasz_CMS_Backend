@@ -14,6 +14,48 @@ class ArticleDB {
     });
   };
 
+  findNewestArticle = async (): Promise<Status> => {
+    const connection = await this.establishConnection();
+
+    const sql =
+      "SELECT * FROM articles join users_and_admins on articles.user_id = users_and_admins.id WHERE timestamp = (SELECT MAX(timestamp) FROM articles) LIMIT 1;";
+
+    try {
+      const [rows] = await connection.execute<IArticle[]>(sql);
+      connection.end();
+      const results = new Status(0, "Query run successfully.", rows);
+      return results;
+    } catch (error) {
+      connection.end();
+      console.log(error);
+      const result = new Status(1, "Query run failed.", false);
+      return result;
+    }
+  };
+
+  find100Random = async (from: Date, to: Date): Promise<Status> => {
+    const connection = await this.establishConnection();
+
+    const sql =
+      "SELECT * FROM articles WHERE timestamp >= ? AND timestamp <= ?;";
+    const data = [
+      from.toISOString().split("T").join(" ").split("Z").join(""),
+      to.toISOString().split("T").join(" ").split("Z").join(""),
+    ];
+
+    try {
+      const [rows] = await connection.execute<IArticle[]>(sql, data);
+      connection.end();
+      const results = new Status(0, "Query run successfully.", rows);
+      return results;
+    } catch (error) {
+      connection.end();
+      console.log(error);
+      const result = new Status(1, "Query run failed.", false);
+      return result;
+    }
+  };
+
   addOne = async (
     userId: number,
     title: string,
@@ -111,7 +153,7 @@ class ArticleDB {
     const connection = await this.establishConnection();
 
     const sql = "SELECT * FROM articles WHERE title LIKE ?";
-    const data = [title];
+    const data = ["%" + title + "%"];
 
     try {
       const [rows] = await connection.query<IArticle[]>(sql, data);
@@ -137,7 +179,7 @@ class ArticleDB {
     const connection = await this.establishConnection();
 
     const sql =
-      "SELECT * FROM articles WHERE timestamp >= ? AND timestamp <= ?;";
+      "SELECT * FROM articles WHERE timestamp >= ? AND timestamp <= ? LIMIT 1;";
     const data = [
       dates.startDate.toISOString().split("T").join(" ").split("Z").join(""),
       dates.endDate.toISOString().split("T").join(" ").split("Z").join(""),
@@ -145,6 +187,7 @@ class ArticleDB {
 
     try {
       const [rows] = await connection.query<IArticle[]>(sql, data);
+      await this.addArticleViewCount(rows[0].getId());
       connection.end();
       return new Status(0, `Query run succeded`, rows);
     } catch (error) {
@@ -162,6 +205,7 @@ class ArticleDB {
 
     try {
       const [rows] = await connection.query<IArticle[]>(sql);
+      await this.addArticleViewCount(rows[0].getId());
       connection.end();
       return new Status(0, `Query run succeded`, rows);
     } catch (error) {
@@ -174,7 +218,8 @@ class ArticleDB {
   findById = async (articleId: number): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = "SELECT * FROM articles WHERE id = ? LIMIT 1;";
+    const sql =
+      "SELECT articles.id, title, content, category, timestamp, full_name FROM articles JOIN users_and_admins ON articles.user_id = users_and_admins.id WHERE articles.id = ? LIMIT 1;";
     const data = [articleId];
 
     try {
@@ -197,6 +242,24 @@ class ArticleDB {
       articleId,
       new Date().toISOString().split("T").join(" ").split("Z").join(""),
     ];
+
+    try {
+      const [rows] = await connection.query<IArticle[]>(sql, data);
+      connection.end();
+      return new Status(0, `Query run succeded`, rows);
+    } catch (error) {
+      connection.end();
+      console.log(error);
+      return new Status(1, "Query run failed", false);
+    }
+  };
+
+  findByTitleAndCategory = async (title: string, category: string) => {
+    const connection = await this.establishConnection();
+
+    const sql =
+      "SELECT articles.id, title, content, category, timestamp, full_name FROM articles JOIN users_and_admins ON articles.user_id = users_and_admins.id WHERE title LIKE ? AND category = ?;";
+    const data = ["%" + title + "%", category];
 
     try {
       const [rows] = await connection.query<IArticle[]>(sql, data);

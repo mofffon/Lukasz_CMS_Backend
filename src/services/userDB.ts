@@ -14,32 +14,55 @@ class UserDB {
     });
   };
 
-  findOneAdmin = async (id: number) => {
+  findAllUsers = async () => {
     const connection = await this.establishConnection();
 
-    const sql = `SELECT * FROM users_and_admins WHERE id = ? AND is_admin = true AND is_active = TRUE;`;
-    const data = [id];
-    let rows;
+    const sql = `SELECT * FROM users_and_admins WHRE is_admin = FALSE;`;
 
     try {
-      [rows] = await connection.execute<IUser[]>(sql, data);
+      const [rows] = await connection.execute<IUser[]>(sql);
       connection.end();
+      const results = new Status(0, "Rows found.", rows);
+      return results;
     } catch (error) {
       console.log(error);
       connection.end();
       const results = new Status(
         1,
         "Something went wrong. We are working on it.",
-        null
+        false
       );
       return results;
     }
-
-    const results = new Status(0, "Rows found.", rows);
-    return results;
   };
 
-  findOneAdminAlt = async (full_name: string, email: string) => {
+  findOneAdmin = async (id: number): Promise<Status> => {
+    const connection = await this.establishConnection();
+
+    const sql = `SELECT * FROM users_and_admins WHERE id = ? AND is_admin = true AND is_active = TRUE;`;
+    const data = [id];
+
+    try {
+      const [rows] = await connection.execute<IUser[]>(sql, data);
+      connection.end();
+      const results = new Status(0, "Rows found.", rows);
+      return results;
+    } catch (error) {
+      console.log(error);
+      connection.end();
+      const results = new Status(
+        1,
+        "Something went wrong. We are working on it.",
+        false
+      );
+      return results;
+    }
+  };
+
+  findOneAdminAlt = async (
+    full_name: string,
+    email: string
+  ): Promise<Status> => {
     const connection = await this.establishConnection();
 
     const sql = `SELECT * FROM users_and_admins WHERE (full_name = ? OR email = ?) AND is_admin = true AND is_active = TRUE;`;
