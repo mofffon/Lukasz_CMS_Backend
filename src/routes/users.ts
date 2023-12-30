@@ -18,7 +18,7 @@ router.post(
   "/new",
   expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
     try {
-      validators.userSchema.validateAsync(req.body);
+      await validators.userSchema.validateAsync(req.body);
     } catch (error: any) {
       res.status(400).send(error.message);
       return;
@@ -263,6 +263,27 @@ router.get(
       }
 
       res.status(200).send(result.rows);
+    }
+  )
+);
+
+router.get(
+  "/myself",
+  auth,
+  expressAsyncHandler(
+    async (req: IExtendedRequest, res: Response): Promise<void> => {
+      if (!req.user) {
+        res.status(500).send("Something went wrong. We are working on it.");
+        return;
+      }
+
+      const response = {
+        id: req.user.id,
+        full_name: req.user.full_name,
+        email: req.user.email,
+      };
+
+      res.status(200).send(response);
     }
   )
 );

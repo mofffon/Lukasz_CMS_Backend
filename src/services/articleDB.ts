@@ -92,11 +92,11 @@ class ArticleDB {
     }
   };
 
-  findAllByUserFullName = async (userFullName: number): Promise<Status> => {
+  listAllByUserFullName = async (userFullName: string): Promise<Status> => {
     const connection = await this.establishConnection();
 
     const sql =
-      "SELECT id, title, content, category, timestamp FROM articles JOIN users_and_admins ON articles.user_id = users_and_admins.id WHERE full_name = ?;";
+      "SELECT articles.id, title, category, timestamp FROM articles JOIN users_and_admins ON articles.user_id = users_and_admins.id WHERE full_name = ?;";
     const data = [userFullName];
 
     try {
@@ -270,6 +270,17 @@ class ArticleDB {
       console.log(error);
       return new Status(1, "Query run failed", false);
     }
+  };
+
+  updateArticle = async (
+    id: number,
+    title: string,
+    category: string,
+    content: string[]
+  ) => {
+    const connection = await this.establishConnection();
+
+    const sql = "UPDATE articles SET ";
   };
 }
 

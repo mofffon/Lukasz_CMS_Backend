@@ -141,13 +141,8 @@ class UserDB {
   ): Promise<Status> => {
     const connection = await this.establishConnection();
 
-    const sql = `INSERT INTO users_and_admins values(NULL, false, ?, ?, ?, ?, 1);`;
-    const data: (string | boolean)[] = [
-      full_name,
-      email,
-      hashed_password,
-      true,
-    ];
+    const sql = `INSERT INTO users_and_admins values(NULL, false, ?, ?, ?, 1);`;
+    const data: (string | boolean)[] = [full_name, email, hashed_password];
     let rows;
     try {
       [rows] = await connection.query<IUser[]>(sql, data);
