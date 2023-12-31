@@ -283,13 +283,29 @@ class ArticleDB {
     const sql =
       "UPDATE articles SET title=?, content=?, category=? WHERE id=?;";
 
-    console.log(Array.isArray(content));
     const processedContent =
       "<p>" +
       (Array.isArray(content) ? content.join("</p><p>") : content) +
       "</p>";
 
     const data = [title, processedContent, category, id];
+
+    try {
+      const [rows] = await connection.query<IArticle[]>(sql, data);
+      connection.end();
+      return new Status(0, `Query run succeded`, rows);
+    } catch (error) {
+      connection.end();
+      console.log(error);
+      return new Status(1, "Query run failed", false);
+    }
+  };
+
+  deleteArticle = async (id: number) => {
+    const connection = await this.establishConnection();
+
+    const sql = "DELETE FROM articles WHERE id=?;";
+    const data = [id];
 
     try {
       const [rows] = await connection.query<IArticle[]>(sql, data);

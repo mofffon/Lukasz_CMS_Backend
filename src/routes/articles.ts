@@ -303,4 +303,30 @@ router.patch(
   )
 );
 
+router.delete(
+  "/delete",
+  auth,
+  expressAsyncHandler(
+    async (req: IExtendedRequest, res: Response): Promise<void> => {
+      const { id } = req.body;
+
+      const parsedId = parseInt(id);
+
+      if (!parsedId || parsedId < 0) {
+        res.status(400).send("The id must be a non negative integer.");
+        return;
+      }
+
+      const result = await articleDB.deleteArticle(id);
+
+      if (result.status > 0) {
+        res.status(500).send("Something went wrong. We are working on it.");
+        return;
+      }
+
+      res.status(200).send(result.rows);
+    }
+  )
+);
+
 export default router;

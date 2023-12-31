@@ -117,9 +117,7 @@ router.post(
     const userObj = { id, is_admin, full_name, email };
 
     if (process.env.JWT_PRIVATE_KEY_USER) {
-      const token = jwt.sign(userObj, process.env.JWT_PRIVATE_KEY_USER, {
-        expiresIn: 3600,
-      });
+      const token = jwt.sign(userObj, process.env.JWT_PRIVATE_KEY_USER);
       res
         .header("x-auth-token", token)
         .status(200)
