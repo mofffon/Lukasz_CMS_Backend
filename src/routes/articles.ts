@@ -266,38 +266,41 @@ router.get(
 );
 
 router.patch(
-  "/",
+  "/update",
   auth,
-  expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { id, title, category, content } = req.query;
+  expressAsyncHandler(
+    async (req: IExtendedRequest, res: Response): Promise<void> => {
+      const { id, title, category, content } = req.body;
 
-    try {
-      validators.articleSchema.validate({ title, category, content });
-    } catch (error: any) {
-      console.log(error);
-      res.status(400).send(error.message);
+      try {
+        validators.articleSchema.validate({ title, category, content });
+      } catch (error: any) {
+        console.log(error);
+        res.status(400).send(error.message);
+        return;
+      }
+
+      const parsedId = parseInt(id as string);
+      if (!id || parsedId < 0) {
+        res.status(400).send("The id must be an integer.");
+        return;
+      }
+
+      const result = await articleDB.updateArticle(
+        parsedId,
+        title as string,
+        category as string,
+        content as string[]
+      );
+
+      if (result.status > 0) {
+        res.status(500).send("Something went wrong. We are working on it.");
+        return;
+      }
+
+      res.status(200).send(result.rows);
     }
-
-    const parsedId = parseInt(id as string);
-    if (!id || parsedId < 0) {
-      res.status(400).send("The id must be an integer.");
-      return;
-    }
-
-    const result = await articleDB.updateArticle(
-      parsedId,
-      title as string,
-      category as string,
-      content as string[]
-    );
-
-    if (result.status > 0) {
-      res.status(500).send("Something went wrong. We are working on it.");
-      return;
-    }
-
-    res.status(200).send(result.rows);
-  })
+  )
 );
 
 export default router;
